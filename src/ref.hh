@@ -1,10 +1,10 @@
 #pragma once
 
+#include <string>
 
 namespace foundation {
-    class Component;
-
-    class Ref {
+  class Component;
+  class Ref {
     public:
         std::string name;
         Component* linked_component = nullptr;
@@ -21,6 +21,11 @@ namespace foundation {
 
         Component* get() {
             return this->linked_component;
+        }
+
+
+        template <typename T> T get_typed() {
+          return static_cast<T>(this->get());
         }
     };
 }

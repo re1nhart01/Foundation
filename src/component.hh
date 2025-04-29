@@ -5,18 +5,12 @@
 
 #include <memory>
 #include "ref.hh"
-
-#include "base_widget.hh"
-
+#include "styling.hh"
 #include <esp_log.h>
 
 extern "C" {
-#include "lv_demos.h"
 #include "lvgl_port.h"
 }
-
-
-
 
 namespace foundation {
   class Component {
@@ -92,7 +86,6 @@ namespace foundation {
             return this->style;
         }
 
-        // 🛡 Безпечний хелпер
         bool is_ready() const {
             return this->component != nullptr;
         }
