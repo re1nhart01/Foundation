@@ -21,7 +21,10 @@
 #include "state.hh"
 #include "references.hh"
 #include "flex.hh"
-
+#include "circular_progress.hh"
+#include "style_store.hh"
+#include "fragment.hh"
+#include "shared.hh"
 extern "C" {
 #include "../lvgl__lvgl/demos/lv_demos.h"
 #include "../../main/core/lvgl_port.h"
