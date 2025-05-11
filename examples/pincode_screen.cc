@@ -1,34 +1,31 @@
-#include "application.hh"
-#include "component.hh"
-#include "view.cc"
+#include <utility>
 
-#include "button.cc"
-#include "image.cc"
-#include "label.cc"
-#include "status_bar.cc"
-#include "state.cc"
-#include "text_input.cc"
-#include "macro_component.cc"
-#include "stack_navigator.cc"
+#include "component.hh"
+#include "macro.hh"
+#include "stack_navigator.hh"
+
+namespace foundation
+{
+  class StackNavigator;
+}
 
 using namespace foundation;
 
-struct admin_screen_props
+struct pincode_screen_props
 {
   std::shared_ptr<foundation::Ref> ref = nullptr;
 };
 
-std::unique_ptr<KeyboardManager> admin_keyboard = std::make_unique<KeyboardManager>();
-std::shared_ptr<Styling> imageStyle = std::make_shared<Styling>();
 
-class AdminScreen : public foundation::Component
+
+class PinCodeScreen : public foundation::Component
 {
-  admin_screen_props props;
+  pincode_screen_props props;
   std::shared_ptr<StackNavigator> navigator;
 
 public:
-  explicit AdminScreen(std::shared_ptr<StackNavigator> stack,
-                       const admin_screen_props &props)
+  explicit PinCodeScreen(std::shared_ptr<StackNavigator> stack,
+                      const pincode_screen_props &props)
       : Component(nullptr, nullptr)
   {
     this->props = props;
@@ -39,14 +36,7 @@ public:
       }
   }
 
-  ~AdminScreen() {
-    Component::~Component();
-  };
-
-  void on_mount() override {
-    Component::on_mount();
-  };
-
+  ~PinCodeScreen() override = default;
 
   lv_obj_t *render() override
   {
@@ -55,10 +45,6 @@ public:
     std::shared_ptr<Styling> style2 = std::make_shared<Styling>();
 
     auto navigator_ref = this->navigator;
-
-    LV_IMG_DECLARE(img_lvgl_logo);
-
-    imageStyle->setSize(100, 100);
 
     auto renderer = $view(
       this->parent,
@@ -74,8 +60,17 @@ public:
                        .ref = nullptr,
                        .style = style2,
                        .text = "text",
-                       .events = {},
                      }),
+          $circular(circular_props{
+            .ref = nullptr,
+            .label_symbol = "%",
+            .show_label_default = true,
+            .min_dy = 0,
+            .max_dy = 100,
+            .default_dy = 40,
+            .w = 200,
+            .h = 200,
+          }),
                      $button(button_props{
                        .ref = nullptr,
                        .style = style1,
@@ -100,12 +95,11 @@ public:
                         .on_value_changed = [](lv_event_t *e) { /* ... */ },
                         .on_submit = [](std::string value) {
                           ESP_LOGI("LoG", "%s", value.c_str());
-                          admin_keyboard.get()->hide();
                         }
-                    }, admin_keyboard.get()),
+                    }, nullptr),
         },
         .width = LV_PCT(100),
-        .height = LV_PCT(95),
+        .height = LV_PCT(100),
         .justify_content = LV_FLEX_ALIGN_SPACE_BETWEEN,
         .align_items = LV_FLEX_ALIGN_CENTER,
         .track_cross_place = LV_FLEX_ALIGN_CENTER,
@@ -132,7 +126,7 @@ public:
     return this->style;
   }
 
-  AdminScreen *append(lv_obj_t *obj) override
+  PinCodeScreen* append(lv_obj_t *obj) override
   {
     lv_obj_set_parent(obj, get_component());
     return this;

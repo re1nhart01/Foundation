@@ -1,19 +1,18 @@
 #include "application.hh"
-#include "view.cc"
 #include "app.cc"
 
-
-#define entrypoint [[maybe_unused]]
+#include <memory>
 
 extern "C" {
-#include "core/waveshare_rgb_lcd_port.h"
+  #include "core/waveshare_rgb_lcd_port.h"
 }
 
 using namespace foundation;
 
 std::shared_ptr<WaveApplication> application;
 
-void entry() {
+[[foundation::entrypoint]]
+void start() {
   waveshare_esp32_s3_rgb_lcd_init();
 
   if (lvgl_port_lock(-1)) {
@@ -26,6 +25,6 @@ void entry() {
   }
 }
 
-extern "C" void app_main() {
-  entry();
-}
+
+
+entry (start) end_entry
