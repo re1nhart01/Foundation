@@ -1,6 +1,4 @@
-#include "application.hh"
 #include "app.cc"
-
 #include <memory>
 
 extern "C" {
