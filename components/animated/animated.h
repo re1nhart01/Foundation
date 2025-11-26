@@ -8,11 +8,10 @@ namespace foundation
   private:
     std::unique_ptr<lv_anim_t> reference;
     Component* component;
-    using Component::props;
     AnimatedSubConfig* sub_config;
 
   public:
-    explicit Animated(Component* component, AnimatedProps props, AnimatedSubConfig* sub_config)
+    explicit Animated(Component *component, AnimatedProps props, AnimatedSubConfig *sub_config) : Component(props)
     {
       this->props = std::move(props);
       this->sub_config = sub_config;
@@ -22,7 +21,12 @@ namespace foundation
       lv_anim_init(this->reference.get());
     };
 
-    ~Animated() override = default;
+    ~Animated() override
+    {
+      if (this->props.ref != nullptr) {
+          this->props.ref->unlink();
+      }
+    };
 
     lv_obj_t* render() override
     {

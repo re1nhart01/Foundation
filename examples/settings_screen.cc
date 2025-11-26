@@ -1,73 +1,56 @@
 #include "../../components/foundation/components/component.h"
-#include "../../components/foundation/core/macro.h"
+#include "../../components/foundation/core/shortcuts.h"
 
-
+class SettingsScreen;
 extern "C" {
   #include "esp_log.h"
 }
 
 using namespace foundation;
 
-struct settings_screen_props
-{
-  std::shared_ptr<Ref> ref = nullptr;
-};
+struct SettingsScreenProps final
+    : BaseProps<SettingsScreenProps, SettingsScreen>
+{};
 
-std::unique_ptr<KeyboardManager> admin_keyboard = std::make_unique<KeyboardManager>();
-std::shared_ptr<Styling> imageStyle = std::make_shared<Styling>();
+auto admin_keyboard
+  = std::make_unique<KeyboardManager>();
+auto imageStyle = std::make_shared<Styling>();
 
-class SettingsScreen : public Component
+class SettingsScreen final : public NavigationScreen<SettingsScreenProps>
 {
-  settings_screen_props props;
-  std::shared_ptr<StackNavigator> navigator;
+  SettingsScreenProps props;
 
 public:
-  explicit SettingsScreen(std::shared_ptr<StackNavigator> stack,
-                       const settings_screen_props &props)
-      : Component(nullptr, nullptr)
+  explicit SettingsScreen(const std::shared_ptr<StackNavigator> &stack, const SettingsScreenProps &props) : NavigationScreen(stack, props)
   {
     this->props = props;
-    this->navigator = std::move(stack);
-    if(this->props.ref != nullptr)
-      {
-        this->props.ref->set(this);
-      }
   }
 
-  ~SettingsScreen() override {
-    Component::~Component();
-  };
+  ~SettingsScreen() override = default;
 
   void component_did_mount() override {
+    NavigationScreen::component_did_mount();
   };
 
 
   lv_obj_t* render() override
     {
-        auto navigator_ref = this->navigator;
-
-        // Styles
-        auto style = this->styling();
-        auto text_style = std::make_shared<Styling>();
-        auto btn_style = std::make_shared<Styling>();
-        auto input_style = std::make_shared<Styling>();
+        auto navigator_ref = this->navigation_ref;
 
          return this->delegate($View(
             ViewProps::up()
                 .set_style(style)
-                .set_children({
+                .set_children(Children{
                     $StatusBar(
                         StatusBarProps::up()
                             .set_style(nullptr)
                     ),
                     $Text(
                         TextProps::up()
-                            .set_style(text_style)
                             .value("text")
                     ),
                     $Button(
                         ButtonProps::up()
-                            .set_style(btn_style)
                             .label("navigate to admin")
                             .click([navigator_ref](lv_event_t* e){
                                 navigator_ref->navigate("/main");
@@ -75,9 +58,8 @@ public:
                     ),
                     $Input(
                         TextInputProps::up()
-                            .set_style(input_style)
-                            .placeholder("text")
-                            .set_on_submit([](const std::string& value){
+                            .hint("text")
+                            .submit([](const std::string& value){
                                 ESP_LOGI("LOG", "%s", value.c_str());
                                 admin_keyboard->hide();
                             }),

@@ -22,22 +22,21 @@ namespace foundation
       }
     }
 
-    ~Button() override = default;
+    ~Button() override
+    {
+      if (this->props.ref != nullptr) {
+          this->props.ref->unlink();
+      }
+    };
 
     lv_obj_t *render() override
     {
       Component::render();
-      lv_obj_t *parent_obj = this->get_parent();
+      lv_obj_t* parent_obj = this->get_parent();
       if (!parent_obj) return nullptr;
 
       set_component(lv_btn_create(parent_obj));
-
-      auto *obj = this->get_component();
-
-      lv_obj_set_layout(obj, LV_LAYOUT_FLEX);
-      lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
-      lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER,
-                            LV_FLEX_ALIGN_CENTER);
+      lv_obj_t* obj = this->get_component();
 
       if (this->props.child != nullptr) {
           this->props.child->set_parent(obj);
@@ -50,19 +49,44 @@ namespace foundation
           lv_label_set_text(this->label, props.text.c_str());
       }
 
-      if (const auto style = this->styling(); style != nullptr) {
-          lv_obj_add_style(obj, style->getStyle(), LV_PART_MAIN);
-      }
-
-      lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE);
-
       lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_CLICKED, this);
       lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_PRESSED, this);
       lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_RELEASED, this);
       lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_LONG_PRESSED, this);
+      lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_FOCUSED, this);
+      lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_DEFOCUSED, this);
 
-      return obj;
+      lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+
+      do_rebuild();
+
+      return this->get_component();
     };
+
+    void do_rebuild() override
+    {
+      lv_obj_t* obj = this->get_component();
+      if (!obj) return;
+
+      lv_obj_set_layout(obj, LV_LAYOUT_FLEX);
+      lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
+      lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_SPACE_AROUND, LV_FLEX_ALIGN_CENTER,
+                            LV_FLEX_ALIGN_CENTER);
+      
+      this->set_active(this->props.is_visible);
+      if (label != nullptr)
+        {
+          lv_label_set_text(label, props.text.c_str());
+        }
+
+      if (props.style != nullptr) {
+          props.style->applyTo(obj);
+      }
+
+      if (props.child != nullptr) {
+          props.child->do_rebuild();
+      }
+    }
 
     std::shared_ptr<Styling> styling() override
     {
@@ -83,7 +107,7 @@ namespace foundation
     auto *instance = static_cast<Button *>(lv_event_get_user_data(event));
     if (!instance) return;
 
-    const auto &events = instance->props;
+    auto &events = instance->props;
 
     switch (event->code) {
       case LV_EVENT_CLICKED:

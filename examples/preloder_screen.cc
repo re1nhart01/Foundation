@@ -1,32 +1,27 @@
 #include "../../components/foundation/components/component.h"
 #include "../../components/foundation/core/application.h"
-#include "../../components/foundation/core/macro.h"
+#include "../../components/foundation/core/shortcuts.h"
 
+class PreloaderScreen;
 using namespace foundation;
 
-struct preloader_screen_props {
-  std::shared_ptr<Ref> ref = nullptr;
-};
+struct PreloaderScreenProps final
+    : BaseProps<PreloaderScreenProps, PreloaderScreen> {};
 
 int i = 0;
+bool flag = false;
 
-class PreloaderScreen final : public Component {
+class PreloaderScreen final : public NavigationScreen<PreloaderScreenProps> {
 private:
-  preloader_screen_props props;
-  std::shared_ptr<StackNavigator> navigator;
-  std::shared_ptr<Ref> label_ref = std::make_shared<Ref>("label");
+  PreloaderScreenProps props;
+  std::shared_ptr<Ref<Text>> label_ref = std::make_shared<Ref<Text>>("label");
+  std::shared_ptr<Ref<View>> view_ref = std::make_shared<Ref<View>>("zxc");
 public:
-  explicit PreloaderScreen(std::shared_ptr<StackNavigator> stack, const preloader_screen_props &props) : Component(nullptr, nullptr) {
+  explicit PreloaderScreen(const std::shared_ptr<StackNavigator> &stack, const PreloaderScreenProps &props) : NavigationScreen(stack, props) {
     this->props = props;
-    this->navigator = std::move(stack);
-    if (this->props.ref != nullptr) {
-        this->props.ref->set(this);
-    }
   }
 
-  ~PreloaderScreen() override {
-    Component::~Component();
-  };
+  ~PreloaderScreen() override = default;
 
   void component_did_mount() override
   {
@@ -35,30 +30,55 @@ public:
 
 
   lv_obj_t* render() override {
-    auto navigator_ref = this->navigator;
+    auto navigator_ref = this->navigation_ref;
 
     return this->delegate(
         $View(
             ViewProps::up()
                 .set_style(this->styling())
-                .set_children({
+                .set_children(Children{
+                    $View(ViewProps::up().w(600).h(240).set_ref(this->view_ref).set_children(Children{})),
 
                     $Text(
                         TextProps::up()
                             .set_ref(this->label_ref)
-                            .value(std::format("{}", i))
+                            .value(std::format("count: {}", i))
                     ),
 
                     $Button(
                         ButtonProps::up()
                             .label("mmm")
                             .click([this](lv_event_t* e) {
-                                auto component = dynamic_cast<Text*>(this->label_ref->linked_component);
-                                if (component) {
-                                    component->set_state([component]() {
-                                        i++;
-                                    });
-                                }
+                              auto component_f = this->label_ref->get();
+                                auto component_g = this->view_ref->get();
+
+                                component_f->set_state([component_f](TextProps& props) {
+                                  auto tex = props.text.c_str();
+
+                                    ESP_LOGI("problem", "%s", tex);
+                                    props.text = "count: " + std::to_string(i++);
+                                });
+
+                              component_g->set_state([](ViewProps& p, VNode* v) {
+                                  const auto self = dynamic_cast<View*>(v);
+
+                                  if (flag)
+                                  {
+                                    p.children.push_back($Text(TextProps::up().value(std::format("Hello", i))));
+                                  }
+                                  else
+                                  {
+                                      if (!p.children.empty()) {
+                                          p.children.pop_back();
+                                      }
+                                  }
+
+                                  flag = !flag;
+
+                                  self->refresh_childrens();
+                                });
+
+
                             })
                     )
 

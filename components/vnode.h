@@ -19,29 +19,24 @@ namespace foundation {
     virtual ~VNode() { VNode::component_will_unmount(); }
 
     VNode() {
-      this->style = std::make_shared<Styling>();
+      this->style = nullptr;
     }
 
-    VNode(lv_obj_t* obj, lv_obj_t* parent)
-      : component(obj), parent(parent) {
-      this->style = std::make_shared<Styling>();
+    VNode(lv_obj_t* obj, lv_obj_t* parent) : component(obj), parent(parent) {
+      this->style = nullptr;
     }
 
-    // ---- Lifecycle ----
     virtual void component_did_mount()    { ESP_LOGI("VNode", "componentDidMount"); }
     virtual void component_will_unmount() { ESP_LOGI("VNode", "componentWillUnmount"); }
     virtual void component_did_update()   { ESP_LOGI("VNode", "componentDidUpdate"); }
     virtual void component_did_rebuild()  { ESP_LOGI("VNode", "componentDidRebuild"); }
 
-    // ---- Rendering ----
     virtual lv_obj_t* render() { component_did_mount(); return nullptr; }
     virtual void do_rebuild() {}
 
-    // ---- Pure virtual ----
     virtual std::shared_ptr<Styling> styling() = 0;
     virtual VNode* append(lv_obj_t* obj) = 0;
 
-    // ---- utils ----
     lv_obj_t* get_component() const { return component; }
     lv_obj_t* get_parent() const { return parent; }
 
@@ -65,7 +60,8 @@ namespace foundation {
     }
 
     void forceUpdate() {
-      if (component) {
+        ESP_LOGI("problem", "%s", this->get_component() == nullptr ? "null" : "not null");
+      if (this->get_component() != nullptr) {
         lv_obj_invalidate(component);
         rebuild();
       }
@@ -73,8 +69,11 @@ namespace foundation {
     }
 
     void rebuild() {
-      if (component && style)
+      auto obj = this->get_component();
+      if (obj != nullptr)
+      {
         do_rebuild();
+      }
     }
 
     void UNSAFE_repainting() {
@@ -86,7 +85,6 @@ namespace foundation {
       component_did_rebuild();
     }
 
-    // Delegate foundation → LVGL
     lv_obj_t* delegate(const std::shared_ptr<VNode>& component_view) {
       this->renderer_view = component_view;
       this->renderer_view->set_parent(this->parent);

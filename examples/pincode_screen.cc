@@ -1,52 +1,48 @@
 #include <utility>
 
 #include "../../components/foundation/components/component.h"
-#include "../../components/foundation/core/macro.h"
+#include "../../components/foundation/core/shortcuts.h"
 
-namespace foundation
-{
-  class StackNavigator;
-}
 
 using namespace foundation;
 
-struct pincode_screen_props
+class PinCodeScreen;
+struct PinCodeScreenProps final : BaseProps<PinCodeScreenProps, PinCodeScreen>{};
+
+class PinCodeScreen : public NavigationScreen<PinCodeScreenProps>
 {
-  std::shared_ptr<foundation::Ref> ref = nullptr;
-};
-
-
-
-class PinCodeScreen : public foundation::Component
-{
-  pincode_screen_props props;
-  std::shared_ptr<StackNavigator> navigator;
+  PinCodeScreenProps props;
 
 public:
-  explicit PinCodeScreen(std::shared_ptr<StackNavigator> stack,
-                      const pincode_screen_props &props)
-      : Component(nullptr, nullptr)
+  explicit PinCodeScreen(const std::shared_ptr<StackNavigator> &stack, const PinCodeScreenProps &props) : NavigationScreen(stack, props)
   {
     this->props = props;
-    this->navigator = std::move(stack);
-    if(this->props.ref != nullptr)
-      {
-        this->props.ref->set(this);
-      }
   }
 
   ~PinCodeScreen() override = default;
 
   lv_obj_t *render() override {
+    auto navigator_ref = this->navigation_ref;
+
     return this->delegate(
         $View(
             ViewProps::up()
                 .set_style(this->styling())
-                .set_children({
+                .set_children(Children{
                     $StatusBar(
                         StatusBarProps::up()
                             .set_style(nullptr)
-                    )
+                    ),
+                  $Button(ButtonProps::up()
+                                    .set_child(
+                                        $Text(
+                                            TextProps::up()
+                                                .value("higger")
+                                        )
+                                    )
+                                    .click([navigator_ref](lv_event_t* e){
+                                        navigator_ref->navigate("/main");
+                                    }))
                 })
                 .w(LV_PCT(100))
                 .h(LV_PCT(100))

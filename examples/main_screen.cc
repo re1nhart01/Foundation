@@ -2,57 +2,93 @@
 
 #include "../../components/foundation/components/component.h"
 
-#include "../../components/foundation/core/macro.h"
+#include "../../components/foundation/core/shortcuts.h"
 #include "../../components/foundation/core/state/state.h"
 #include "../../components/foundation/core/style_store/style_store.h"
-#include "../../components/foundation/unused/references_h.txt"
 #include "components/button/button_props.h"
 #include "components/text/text_props.h"
 #include "components/view/view.h"
 #include "components/view/view_props.h"
+#include "protocols/uart/uart_proto.h"
 #include "ui/localization.hh"
 #include "ui/styles/main_screen_styles.cc"
+#include "lg/dataset/parser.cc"
 
+struct PinCodeScreenProps;
 using namespace foundation;
 
-struct main_screen_props {
-  std::shared_ptr<Ref> ref = nullptr;
-};
+class MainScreen;
+struct MainScreenProps final : BaseProps<MainScreenProps, MainScreen> {};
 
-class MainScreen final : public Component {
-  main_screen_props props;
-  std::shared_ptr<StackNavigator> navigator;
-  StyleStorage* styles;
-  References* references;
+class MainScreen final : public NavigationScreen<MainScreenProps> {
+  MainScreenProps props;
+  StyleStorage* styles = nullptr;
+  UartHandler* uart_handler = nullptr;
+  std::shared_ptr<Ref<Text>> text_ref = nullptr;
 public:
-  ~MainScreen() override {
-    delete this->styles;
-    delete this->references;
-  };
-
-  explicit MainScreen(std::shared_ptr<StackNavigator> stack, const main_screen_props &props) : Component(nullptr, nullptr) {
+  explicit MainScreen(const std::shared_ptr<StackNavigator> &stack, const MainScreenProps &props) : NavigationScreen(stack, props) {
     this->props = props;
-    this->navigator = std::move(stack);
     this->styles = new StyleStorage();
-    this->references = new References();
-    if(this->props.ref != nullptr) {
-        this->props.ref->set(this);
-    }
-
     style_main_screen_register(*this->styles);
+    this->text_ref = std::make_shared<Ref<Text>>("text");
+
   }
 
+  ~MainScreen() override {
+    NavigationScreen::~NavigationScreen();
+    delete this->styles;
+    delete this->uart_handler;
+    ESP_LOGI("main_screen", "Main screen destroyed");
+  };
+
+  std::shared_ptr<Styling> $s(const std::string& key) const
+  {
+    return this->styles->get(key);
+  }
+
+  void on_focus() override
+  {
+    NavigationScreen::on_focus();
+    this->uart_handler = new UartHandler(UART_NUM_1, GPIO_NUM_6, GPIO_NUM_7, 9600, 16384);
+    ESP_LOGI("main_screen", "on_FOCUS");
+      this->uart_handler->init();
+      this->uart_handler->enable_rx(true);
+      auto text_reference = this->text_ref;
+
+      this->uart_handler->add_event_listener(UartTypes::UartHandlerEvent{
+        .key_v = const_cast<char*>("read_data_dto"),
+        .event = UART_DATA,
+        .delegate = [text_reference](const UartTypes::UartCallbackResponse& data) {
+          if (text_reference->is_ready())
+            {
+              text_reference->get()->set_state([data](TextProps& props) {
+                const std::string rand_str = packets[random_in_range(0, 9)];
+                const auto dataset = parse_into_dataset(rand_str);
+
+                props.text = std::to_string(dataset.oxygen_levels[0]);
+              });
+            }
+         }
+      });
+  };
+
+  void on_blur() override
+  {
+    NavigationScreen::on_blur();
+    this->uart_handler->remove_all_event_listeners();
+  };
+
     std::shared_ptr<View> render_header() const {
-    auto navigator_ref = this->navigator;
+    auto navigator_ref = this->navigation_ref;
 
     return $View(
         ViewProps::up()
             .set_style($s("header.container"))
-            .set_children({
+            .set_children(Children{
                 $View(
                     ViewProps::up()
                         .set_style($s("header.labels.container"))
-                        .set_children({
+                        .set_children(Children{
                             $Text(TextProps::up().value(std::format("Channels: {}", 3))),
                             $Text(TextProps::up().value(std::format("Inputs: {}", 3))),
                             $Text(TextProps::up().value(std::format("Outputs: {}", 3))),
@@ -62,7 +98,7 @@ public:
                 $View(
                     ViewProps::up()
                         .set_style($s("header.container"))
-                        .set_children({
+                        .set_children(Children{
                             $Button(
                                 ButtonProps::up()
                                     .set_style($s("header.button"))
@@ -117,11 +153,9 @@ public:
   }
 
   std::shared_ptr<View> render_body() const {
-
     auto make_circle = [&]() {
         return $Circular(
             CircularProgressProps::up()
-                .set_ref(nullptr)
                 .label("%")
                 .show_label(true)
                 .min(0)
@@ -135,16 +169,17 @@ public:
     return $View(
         ViewProps::up()
             .set_style($s("header.container"))
-            .set_children({
+            .set_children(Children{
                 $Text(
                     TextProps::up()
+                        .set_ref(text_ref)
                         .set_style($s("header.label"))
                         .value(locales::en::oxygen_level)
                 ),
                 $View(
                     ViewProps::up()
                         .set_style($s("header.labels.container"))
-                        .set_children({
+                        .set_children(Children{
                             make_circle(),
                             make_circle(),
                             make_circle(),
@@ -164,7 +199,7 @@ public:
                 $View(
                     ViewProps::up()
                         .set_style($s("header.labels.container"))
-                        .set_children({
+                        .set_children(Children{
                             make_circle(),
                             make_circle(),
                             make_circle(),
@@ -193,7 +228,7 @@ public:
         $View(
             ViewProps::up()
                 .set_style(this->styling())
-                .set_children({
+                .set_children(Children{
                     $StatusBar(
                         StatusBarProps::up()
                             .set_style(nullptr)

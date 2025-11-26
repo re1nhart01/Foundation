@@ -7,6 +7,9 @@
 #include "components/text/text.h"
 #include "components/text/text_props.h"
 
+#include "components/activity_indicator/activity_indicator.h"
+#include "components/activity_indicator/activity_indicator_props.h"
+
 #include "components/text_input/text_input.h"
 #include "components/text_input/text_input_props.h"
 
@@ -31,12 +34,14 @@
 #include "core/keyboard_manager/keyboard_manager.h"
 
 #include "core/navigation/stack_navigator/stack_navigator.h"
+#include "core/navigation/stack_navigator/navigation_screen_base.h"
 
 #include "core/styling/styling.h"
 
 #include "core/style_store/style_store.h"
 #include "core/ref_store/ref_store.h"
 #include "core/structures/static_hashmap.h"
+#include "core/callback.h"
 #include "components/props.h"
 
 extern "C" {

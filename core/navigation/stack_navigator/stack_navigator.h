@@ -1,125 +1,135 @@
 #pragma once
 
 #include "components/component.h"
+#include "core/structures/delegate.h"
+#include "navigation_screen_base.h"
 
+#include <functional>
 #include <memory>
+#include <optional>
 #include <stack>
 #include <string>
+#include <unordered_map>
 
-namespace foundation
-{
-  struct StackCurrentScreen {
+namespace foundation {
+
+struct StackCurrentScreen {
     int id;
     std::string name;
-    std::shared_ptr<VNode> screen;
-  };
+    std::shared_ptr<VNode> instance;
+};
 
-  struct StackNavigatorConfig {
+struct StackNavigatorConfig {
     std::string initial_route;
-  };
+};
 
-  class StackNavigator {
-  private:
-    std::shared_ptr<StackCurrentScreen> current_screen = nullptr;
-    lv_obj_t* parent = nullptr;
+using ScreenFactory = Delegate<std::shared_ptr<VNode>()>;
+
+class StackNavigator : public std::enable_shared_from_this<StackNavigator> {
+private:
+    std::optional<StackCurrentScreen> current;
+    lv_obj_t* parent;
     StackNavigatorConfig config;
-    std::unordered_map<std::string, std::shared_ptr<VNode>> screens;
-    std::stack<StackCurrentScreen> stack;
+    std::unordered_map<std::string, ScreenFactory> factories;
+    std::stack<StackCurrentScreen> history;
     int id_counter = 0;
 
-  public:
-    explicit StackNavigator(const StackNavigatorConfig& config, lv_obj_t* parent){
-      this->config = config;
-      this->parent = parent;
-  };
+public:
+    explicit StackNavigator(const StackNavigatorConfig& cfg, lv_obj_t* parent)
+        : parent(parent), config(cfg) {}
 
-  void registerScreen(const std::string& name, const std::shared_ptr<VNode>& component) {
-    screens[name] = component;
+    void register_screen(const std::string& name, ScreenFactory factory) {
+        factories[name] = std::move(factory);
+    }
 
-    current_screen = std::make_shared<StackCurrentScreen>(StackCurrentScreen{
-        .id = id_counter++,
-        .name = name,
-        .screen = component
-    });
-  }
+    void start() {
+      const std::string initial = this->config.initial_route;
+      if (const auto it = factories.find(initial); it != factories.end())
+        {
+          const std::shared_ptr<VNode>& component =  it->second();
+          current = StackCurrentScreen{
+            .id = id_counter++,
+            .name = initial,
+            .instance = component
+        };
 
-  void start() {
-      if (screens.contains(config.initial_route)) {
-          navigate(config.initial_route);
-      } else {
-          // TODO: handle error case (optional)
-      }
-  }
+          if (auto* s = dynamic_cast<NavigationScreenBase*>(component.get()))
+            {
+              s->on_focus();
+            }
+        }
+    }
 
-  void navigate(const std::string& name) {
-      auto it = screens.find(name);
-      if (it != screens.end()) {
-          auto screen = it->second;
-          lv_obj_t* active_screen = this->parent != nullptr ? this->parent : lv_scr_act();
+    void navigate(const std::string& name) {
+        auto it = factories.find(name);
+        if (it == factories.end()) return;
 
-          lv_obj_clean(active_screen);
+        if (current) {
+            if (auto* ns = dynamic_cast<NavigationScreenBase*>(current->instance.get())) {
+                ns->on_blur();
+            }
 
-          screen->set_parent(active_screen);
+            history.push(std::move(*current));
+            current.reset();
+        }
 
-          lv_obj_t* obj = screen->render();
-          screen->set_component(obj);
+        lv_obj_t* active = parent ? parent : lv_scr_act();
+        lv_obj_clean(active);
 
-          // screen->component_did_mount();
+        auto screen = it->second();
+        screen->set_parent(active);
 
-          current_screen = std::make_shared<StackCurrentScreen>(StackCurrentScreen{
-              .id = ++id_counter,
-              .name = name,
-              .screen = screen
-          });
+        auto obj = screen->render();
+        screen->set_component(obj);
 
-          this->push(*current_screen);
-      }
-  }
+        current = StackCurrentScreen {
+            .id = id_counter++,
+            .name = name,
+            .instance = screen
+        };
 
-  void goBack() {
-      if (!stack.empty()) {
-          StackCurrentScreen previous = stack.top();
-          this->pop();
+        if (auto* ns = dynamic_cast<NavigationScreenBase*>(screen.get())) {
+            ns->on_focus();
+        }
+    }
 
-          this->current_screen = std::make_shared<StackCurrentScreen>(previous);
+    void goBack() {
+        if (history.empty()) return;
 
-          auto screen = previous.screen;
-          lv_obj_t* active_screen = this->parent;
-          lv_obj_clean(active_screen);
+        if (current) {
+            if (auto* ns = dynamic_cast<NavigationScreenBase*>(current->instance.get())) {
+                ns->on_blur();
+            }
+        }
 
-          screen->set_parent(active_screen);
+        lv_obj_clean(parent);
 
-          lv_obj_t* obj = screen->render();
-          screen->set_component(obj);
+        auto prev = std::move(history.top());
+        history.pop();
 
-          // screen->on_mount();
-      } else {
-          ESP_LOGI("NO SCREENS IN STACK NAVIGATION", "");
-      }
-  }
+        auto screen = prev.instance;
+        auto obj = screen->render();
+        screen->set_component(obj);
 
-  StackCurrentScreen pop() {
-      auto current = this->stack.top();
-      this->stack.pop();
-      return current;
-  }
+        current = std::move(prev);
 
-  StackCurrentScreen push(const StackCurrentScreen& current) {
-      this->stack.push(current);
-      return current;
-  }
+        if (auto* ns = dynamic_cast<NavigationScreenBase*>(screen.get())) {
+            ns->on_focus();
+        }
+    }
 
-  std::shared_ptr<VNode> getCurrentComponent() const {
-      return current_screen ? current_screen->screen : nullptr;
-  }
+    const std::string& getCurrentRoute() const {
+        static const std::string empty = "";
+        return current ? current->name : empty;
+    }
 
-  std::string getCurrentRoute() const {
-      return current_screen ? current_screen->name : "";
-  }
+    bool hasScreen(const std::string& name) const {
+        return factories.contains(name);
+    }
 
-  bool hasScreen(const std::string& name) const {
-      return screens.contains(name);
-  }
-  };
+    std::shared_ptr<VNode> getCurrentComponent() const {
+        return current ? current->instance : nullptr;
+    }
+};
 
-}
+} // namespace foundation

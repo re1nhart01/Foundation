@@ -1,6 +1,7 @@
 #pragma once
+#include <functional>
 
-template<typename Key, typename Value>
+template <typename Key, typename Value>
 struct StaticHashMapNode
 {
   Key key;
@@ -52,4 +53,18 @@ class StaticHashMap
       }
     return nullptr;
   }
+
+  // Value& get(const Key& key, foundation::Delegate<std::string>)
+  // {
+  //   const size_t hash = hasher(key);
+  //   for (size_t i = 0; i < N; i++)
+  //     {
+  //       size_t pos = (hash + i) % N;
+  //       if (data[pos].created && data[pos].key == key)
+  //         {
+  //           return data[pos].value;
+  //         }
+  //     }
+  //   return nullptr;
+  // }
 };
