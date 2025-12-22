@@ -4,14 +4,18 @@
 #include "../../components/foundation/core/state/state.h"
 #include "../../components/foundation/core/style_store/style_store.h"
 #include "components/button/button_props.h"
+#include "components/modal/modal_props.h"
 #include "components/text/text_props.h"
 #include "components/view/view.h"
 #include "components/view/view_props.h"
 #include "core/ref_store/ref_store.h"
 #include "lg/dataset/parser.cc"
+#include "lg/store/global_store.h"
 #include "protocols/uart/uart_proto.h"
 #include "ui/localization.hh"
-#include "ui/styles/main_screen_styles.cc"
+#include "ui/styles/common_styles.h"
+
+#include <algorithm>
 
 struct PinCodeScreenProps;
 using namespace foundation;
@@ -23,22 +27,19 @@ class MainScreen final : public NavigationScreen<MainScreenProps> {
   MainScreenProps props;
   std::unique_ptr<StyleStorage> styles;
   std::unique_ptr<UartHandler> uart_handler = nullptr;
-
-  SharedRefStore<12>* ref_store;
+  std::unique_ptr<SharedRefStore<12>> ref_store;
+  std::shared_ptr<Modal> info_modal = nullptr;
 public:
   explicit MainScreen(const std::shared_ptr<StackNavigator> &stack, const MainScreenProps &props)
     : NavigationScreen(stack, props),
       props(props),
       styles(std::make_unique<StyleStorage>()),
-      ref_store(new SharedRefStore<12>())
-{
-    style_main_screen_register(*this->styles);
-}
+      ref_store(std::make_unique<SharedRefStore<12>>())
+    {
+        style_screen_register(*this->styles);
+    }
 
   ~MainScreen() override {
-    NavigationScreen::~NavigationScreen();
-
-    delete ref_store;
     ESP_LOGI("main_screen", "Main screen destroyed");
   };
 
@@ -77,6 +78,32 @@ public:
     });
   }
 
+  void show_info_modal()
+  {
+    info_modal = $Modal(
+        ModalProps::up()
+            .set_content(
+                $View(ViewProps::up().set_children(Children{
+                    $Text(TextProps::up().value("I am modal")),
+                    $Button(
+                        ButtonProps::up()
+                            .set_style($s("header.button"))
+                            .label("Press")
+                            .click([this](lv_event_t*) {
+                              this->info_modal->close();
+                            })
+                    ),
+                })
+            .justify(LV_FLEX_ALIGN_CENTER)
+            .items(LV_FLEX_ALIGN_CENTER)
+            .track_cross(LV_FLEX_ALIGN_CENTER)
+            .direction(LV_FLEX_FLOW_COLUMN))
+            )
+    );
+
+    info_modal->show();
+  }
+
   void add_uart_data_event()
   {
     this->uart_handler->add_event_listener(UartTypes::UartHandlerEvent{
@@ -106,8 +133,9 @@ public:
                     const auto text_outputs_ref = ctx->screen->ref_store->get<Text>("text_outputs");
                     const auto main_button_ref = ctx->screen->ref_store->get<Text>("main_button");
                     const auto status_bar_ref = ctx->screen->ref_store->get<Text>("status_bar_moto");
+                    const auto status_bar_lvgl_ref = ctx->screen->ref_store->get<Text>("status_bar_lvgl");
 
-                    ctx->screen->update_specific_label(
+                  ctx->screen->update_specific_label(
                         std::format("Channels: {}", ctx->data.channels),
                         text_channels_ref
                     );
@@ -148,6 +176,19 @@ public:
                        );
                     }
 
+                    GlobalStore::getInstance()->getMotoHoursState()->set(
+                      [ctx, status_bar_lvgl_ref](const uint32_t prev) {
+                      if(prev == UINT32_MAX) return prev;
+                      const auto newValue = prev + 1;
+
+                      ctx->screen->update_specific_label(
+                        std::format("LVGL Seconds: {}", newValue),
+                        status_bar_lvgl_ref
+                      );
+
+                      return newValue;
+                    });
+
                     delete ctx;
                 },
                 ctx
@@ -187,8 +228,8 @@ public:
                                                 .value(locales::en::header_information)
                                         )
                                     )
-                                    .click([navigator_ref](lv_event_t* e){
-                                        navigator_ref->navigate("/pincode");
+                                    .click([this](lv_event_t* e){
+                                      this->show_info_modal();
                                     })
                             ),
 
@@ -315,7 +356,7 @@ public:
                         .set_children(Children{
                             $Text(TextProps::up().set_ref(ref_store->create<Text>("status_bar_moto")).value("06:10 AM").set_style($s("status_bar.time"))),
                             $Text(TextProps::up().value("ON2 Solution").set_style($s("status_bar.logo"))),
-                            $Text(TextProps::up().value("85%").set_style($s("status_bar.battery"))),
+                            $Text(TextProps::up().set_ref(ref_store->create<Text>("status_bar_lvgl")).value("LVGL Seconds: 0").set_style($s("status_bar.battery"))),
                         })
                     ),
                     this->render_header(),

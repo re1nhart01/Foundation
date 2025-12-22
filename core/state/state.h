@@ -16,6 +16,15 @@ class State {
 
     const T& get() const { return value; }
 
+    void set(Delegate<T(T)> cb)
+    {
+      T newValue = cb(value);
+      if (!std::equal_to<T>()(value, newValue)) {
+          value = newValue;
+          force_notify();
+      }
+    }
+
     void set(const T& newValue)
     {
       if (!std::equal_to<T>()(value, newValue)) {
@@ -30,7 +39,7 @@ class State {
       return *this;
     }
 
-    int subscribe(std::function<void(const T&)> cb)
+    int subscribe(Delegate<void(const T&)> cb)
     {
       if (count < MaxListeners) {
           listeners[count] = std::move(cb);
@@ -39,7 +48,7 @@ class State {
       return -1;
     }
 
-    int subscribe_once(std::function<void(const T&)> cb)
+    int subscribe_once(Delegate<void(const T&)> cb)
     {
       if (count < MaxListeners) {
           int id = count;
