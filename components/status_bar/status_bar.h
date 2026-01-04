@@ -11,8 +11,7 @@ namespace foundation
     using Component::props;
 
     explicit StatusBar(const StatusBarProps& props) : Component(nullptr, nullptr, std::move(props)) {
-      this->parent = nullptr;
-
+      this->apply_reactive<StatusBar>(this, props.reactive_delegates);
       if (this->props.ref != nullptr) {
           this->props.ref->set(this);
       }
@@ -20,6 +19,10 @@ namespace foundation
 
     ~StatusBar() override
     {
+      if (!this->props.reactive_link.empty())
+      {
+        this->detach_reactives<StatusBar>(this, this->props.reactive_link);
+      }
       if (this->props.ref != nullptr) {
           this->props.ref->unlink();
       }
@@ -27,13 +30,18 @@ namespace foundation
 
     lv_obj_t * render() override
     {
-      std::shared_ptr<Styling> styleV = this->styling();
-
+      Component::render();
       return this->delegate(
         std::make_shared<View>(
-          this->parent,
           ViewProps::up()
-          .set_style(styleV)
+          .set_style([this](Styling& style) {
+            style.setBackgroundColor(this->props.background_color.value_or(lv_color_hex(0x303030)));
+            style.setTextColor(lv_color_make(255, 255, 255));
+            style.setPadding(0, 0, 16, 16);
+            style.setBorder(lv_color_make(0, 0, 0), 0, 0);
+            style.setFont(&lv_font_montserrat_12);
+            style.setBorderRadius(0);
+          })
           .set_children(this->props.children)
           .w(LV_PCT(100))
           .h(this->props.height.value_or(24))
@@ -45,20 +53,18 @@ namespace foundation
       );
     };
 
-    std::shared_ptr<Styling> styling() override
+    const Styling* styling() const override
     {
-      this->style = std::make_shared<Styling>();
+      style.reset();
 
-      this->style->setBackgroundColor(this->props.background_color.value_or(lv_color_hex(0x303030)));
+      apply_base_style(style);
 
-      this->style->setTextColor(lv_color_make(255, 255, 255));
-      this->style->setPadding(0, 0, 16, 16); // Padding T R B L
-      this->style->setBorder(lv_color_make(0, 0, 0), 0, 0);
-      this->style->setFont(&lv_font_montserrat_12);
-      this->style->setBorderRadius(0);
+      if (props.style_override) {
+          props.style_override(style);
+      }
 
-      return this->style;
-    };
+      return &style;
+    }
 
     StatusBar* append(lv_obj_t* obj) override
     {

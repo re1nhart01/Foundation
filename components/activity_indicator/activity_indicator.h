@@ -13,6 +13,7 @@ namespace foundation
     public:
 
     explicit ActivityIndicator(const ActivityIndicatorProps &props) : Component(nullptr, nullptr, std::move(props)) {
+      this->apply_reactive<ActivityIndicator>(this, props.reactive_delegates);
       if (this->props.ref != nullptr) {
           this->props.ref->set(this);
       }
@@ -21,6 +22,10 @@ namespace foundation
     ~ActivityIndicator() override {
       if (this->props.ref != nullptr) {
           this->props.ref->unlink();
+      }
+      if (!this->props.reactive_link.empty())
+      {
+        this->detach_reactives<ActivityIndicator>(this, this->props.reactive_link);
       }
     };
 
@@ -32,10 +37,6 @@ namespace foundation
 
       set_component(lv_spinner_create(this->parent, this->props.spin_time, this->props.arc_length));
       lv_obj_t* obj = this->get_component();
-
-      if (props.style) {
-          lv_obj_add_style(obj, props.style->getStyle(), 0);
-      }
 
       do_rebuild();
 
@@ -52,19 +53,24 @@ namespace foundation
 
       this->set_active(this->props.is_visible);
 
-      if (props.style) {
-          lv_obj_add_style(obj, props.style->getStyle(), 0);
+      if (const Styling* s = styling()) {
+          lv_obj_add_style(get_component(), s->getStyle(), LV_PART_MAIN);
       }
 
     }
 
-    std::shared_ptr<Styling> styling() override
+    const Styling* styling() const override
     {
-      if (this->props.style) {
-          return this->props.style;
+      style.reset();
+
+      apply_base_style(style);
+
+      if (props.style_override) {
+          props.style_override(style);
       }
-      return {};
-    };
+
+      return &style;
+    }
 
     ActivityIndicator *append(lv_obj_t *obj) override
     {

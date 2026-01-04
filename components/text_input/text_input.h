@@ -10,6 +10,7 @@ namespace foundation
     using Component::props;
     bool is_init = true;
     explicit TextInput(const TextInputProps& props) : Component(nullptr, nullptr, std::move(props)) {
+      this->apply_reactive<TextInput>(this, props.reactive_delegates);
       if (this->props.ref != nullptr) {
           this->props.ref->set(this);
       }
@@ -19,6 +20,10 @@ namespace foundation
     {
       if (this->props.ref != nullptr) {
           this->props.ref->unlink();
+      }
+      if (!this->props.reactive_link.empty())
+      {
+        this->detach_reactives<TextInput>(this, this->props.reactive_link);
       }
     };
 
@@ -51,10 +56,6 @@ namespace foundation
 
       if (props.text != nullptr) {
           lv_textarea_set_text(obj, props.text);
-      }
-
-      if (props.style) {
-          props.style->applyTo(obj);
       }
 
       lv_obj_remove_event_cb(obj, nullptr);
@@ -90,13 +91,18 @@ namespace foundation
       if (props.on_value_changed)  lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_VALUE_CHANGED, this);
     }
 
-    std::shared_ptr<Styling> styling() override
+    const Styling* styling() const override
     {
-      if (this->props.style) {
-          return this->props.style;
+      style.reset();
+
+      apply_base_style(style);
+
+      if (props.style_override) {
+          props.style_override(style);
       }
-      return {};
-    };
+
+      return &style;
+    }
 
     TextInput* append(lv_obj_t* obj) override
     {

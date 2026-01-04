@@ -12,6 +12,7 @@ namespace foundation
     explicit Animated(const std::shared_ptr<VNode> &component, AnimatedProps props)
       : Component(std::move(props))
     {
+      this->apply_reactive<Animated>(this, props.reactive_delegates);
       this->component = component;
       this->reference = std::make_unique<lv_anim_t>();
 
@@ -24,6 +25,10 @@ namespace foundation
 
     ~Animated() override
     {
+      if (!this->props.reactive_link.empty())
+      {
+        this->detach_reactives<Animated>(this, this->props.reactive_link);
+      }
       if (this->props.ref != nullptr) {
           this->props.ref->unlink();
       }
@@ -51,10 +56,19 @@ namespace foundation
       return obj;
     };
 
-    std::shared_ptr<Styling> styling() override
+    const Styling* styling() const override
     {
-      return {};
-    };
+      style.reset();
+
+      apply_base_style(style);
+
+      if (props.style_override) {
+          props.style_override(style);
+      }
+
+      return &style;
+    }
+
     Animated* append(lv_obj_t* obj) override
     {
       lv_obj_set_parent(obj, get_component());

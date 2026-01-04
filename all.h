@@ -23,6 +23,9 @@
 #include "components/scroll_view/scroll_view.h"
 #include "components/scroll_view/scroll_view_props.h"
 
+#include "components/flat_list/flat_list.h"
+#include "components/flat_list/flat_list_props.h"
+
 #include "components/fragment/fragment.h"
 #include "components/fragment/fragment_props.h"
 
@@ -38,6 +41,12 @@
 #include "components/status_bar/status_bar.h"
 #include "components/status_bar/status_bar_props.h"
 
+#include "components/tab_view/tab_view.h"
+#include "components/tab_view/tab_view_props.h"
+
+#include "components/stepper/stepper.h"
+#include "components/stepper/stepper_props.h"
+
 #include "core/keyboard_manager/keyboard_manager.h"
 
 #include "core/navigation/stack_navigator/stack_navigator.h"
@@ -46,6 +55,8 @@
 
 #include "core/styling/styling.h"
 
+#include "core/state/reactive.h"
+#include "core/state/thread_reactive.h"
 #include "core/style_store/style_store.h"
 #include "components/props.h"
 #include "core/structures/delegate.h"

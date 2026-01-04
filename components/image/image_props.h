@@ -1,27 +1,27 @@
 #pragma once
 #include "image.h"
+#include "components/props.h";
 
 namespace foundation
 {
   class Image;
   struct ImageProps final : BaseProps<ImageProps, Image> {
-    std::shared_ptr<Styling> style;
-
-    lv_img_dsc_t img_dsc;
-    const char* img_src;
+    lv_img_dsc_t img_dsc = {};
+    const char* img_src = nullptr;
     short real_width = 0;
     short real_height = 0;
-
-    static ImageProps up() { return ImageProps{}; }
-
-    ImageProps& set_style(std::shared_ptr<Styling> s) {
-      style = std::move(s);
-      return *this;
-    }
+    short orig_width = 0;
+    short orig_height = 0;
 
     ImageProps& source(const char* src)
     {
       this->img_src = src;
+      return *this;
+    }
+
+    ImageProps& original_size(short w, short h) {
+      orig_width = w;
+      orig_height = h;
       return *this;
     }
 

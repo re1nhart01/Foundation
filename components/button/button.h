@@ -17,6 +17,7 @@ namespace foundation
     using Component::props;
 
    explicit Button(const ButtonProps &props) : Component(nullptr, nullptr, std::move(props)) {
+     this->apply_reactive<Button>(this, props.reactive_delegates);
       if (this->props.ref != nullptr) {
           this->props.ref->set(this);
       }
@@ -24,6 +25,10 @@ namespace foundation
 
     ~Button() override
     {
+       if (!this->props.reactive_link.empty())
+       {
+         this->detach_reactives<Button>(this, this->props.reactive_link);
+       }
       if (this->props.ref != nullptr) {
           this->props.ref->unlink();
       }
@@ -48,6 +53,7 @@ namespace foundation
           this->label = lv_label_create(obj);
           lv_label_set_text(this->label, props.text.c_str());
       }
+
 
       lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_CLICKED, this);
       lv_obj_add_event_cb(obj, event_adapter, LV_EVENT_PRESSED, this);
@@ -79,8 +85,8 @@ namespace foundation
           lv_label_set_text(label, props.text.c_str());
         }
 
-      if (props.style != nullptr) {
-          props.style->applyTo(obj);
+      if (const Styling* s = styling()) {
+          lv_obj_add_style(get_component(), s->getStyle(), LV_PART_MAIN);
       }
 
       if (props.child != nullptr) {
@@ -88,13 +94,18 @@ namespace foundation
       }
     }
 
-    std::shared_ptr<Styling> styling() override
+    const Styling* styling() const override
     {
-      if (this->props.style) {
-          return this->props.style;
+      style.reset();
+
+      apply_base_style(style);
+
+      if (props.style_override) {
+          props.style_override(style);
       }
-      return {};
-    };
+
+      return &style;
+    }
 
     Button *append(lv_obj_t *obj) override
     {

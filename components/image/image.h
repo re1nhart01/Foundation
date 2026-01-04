@@ -11,8 +11,7 @@ namespace foundation
   public:
     explicit Image(const ImageProps& props)
       : Component(nullptr, nullptr, std::move(props)) {
-      set_style(props.style);
-
+      this->apply_reactive<Image>(this, props.reactive_delegates);
       if (this->props.ref != nullptr) {
           this->props.ref->set(this);
       }
@@ -22,6 +21,10 @@ namespace foundation
     {
       if (this->props.ref != nullptr) {
           this->props.ref->unlink();
+      }
+      if (!this->props.reactive_link.empty())
+      {
+        this->detach_reactives<Image>(this, this->props.reactive_link);
       }
     };
 
@@ -44,7 +47,7 @@ namespace foundation
       lv_obj_set_height(comp, this->props.real_height);
       lv_obj_align(comp, LV_ALIGN_CENTER, 0, 0);
 
-      std::shared_ptr<Styling> style = this->styling();
+      auto style = this->styling();
       if (style != nullptr) {
           lv_obj_add_style(comp, style->getStyle(), LV_PART_MAIN);
       }
@@ -52,10 +55,18 @@ namespace foundation
       return comp;
     };
 
-    std::shared_ptr<Styling> styling() override
+    const Styling* styling() const override
     {
-      return this->props.style ? this->props.style : std::shared_ptr<Styling>{};
-    };
+      style.reset();
+
+      apply_base_style(style);
+
+      if (props.style_override) {
+          props.style_override(style);
+      }
+
+      return &style;
+    }
 
     Image* append(lv_obj_t* obj) override
     {

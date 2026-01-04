@@ -8,17 +8,8 @@ namespace foundation
   private:
 
   public:
-    explicit View(lv_obj_t * parent, const ViewProps &props) : Component(nullptr, parent, props) {
-      set_style(props.style);
-
-      if(this->props.ref != nullptr) {
-          this->props.ref->set(this);
-      }
-    };
-
     explicit View(const ViewProps &props) : Component(nullptr, nullptr, std::move(props)) {
-      set_style(props.style);
-
+      this->apply_reactive<View>(this, props.reactive_delegates);
       if(this->props.ref != nullptr) {
           this->props.ref->set(this);
       }
@@ -28,6 +19,10 @@ namespace foundation
     {
       if (this->props.ref != nullptr) {
           this->props.ref->unlink();
+      }
+      if (!this->props.reactive_link.empty())
+      {
+        this->detach_reactives<View>(this, this->props.reactive_link);
       }
     };
 
@@ -45,7 +40,7 @@ namespace foundation
 
       lv_obj_set_scroll_dir(comp, LV_DIR_NONE);
       lv_obj_set_scrollbar_mode(comp, LV_SCROLLBAR_MODE_OFF);
-      std::shared_ptr<Styling> style = this->styling();
+      const auto style = this->styling();
 
       for (const auto& child : this->props.children) {
           if (child != nullptr) {
@@ -77,7 +72,7 @@ namespace foundation
       lv_obj_set_scroll_dir(obj, LV_DIR_NONE);
       lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_OFF);
 
-      if (std::shared_ptr<Styling> style = this->styling(); style != nullptr) {
+      if (const Styling* style = this->styling(); style != nullptr) {
           style->applyTo(this->get_component());
       }
 
@@ -105,13 +100,18 @@ namespace foundation
       lv_obj_update_layout(obj);
     }
 
-    std::shared_ptr<Styling> styling() override
+    const Styling* styling() const override
     {
-      if (this->props.style) {
-          return this->props.style;
+      style.reset();
+
+      apply_base_style(style);
+
+      if (props.style_override) {
+          props.style_override(style);
       }
-      return {};
-    };
+
+      return &style;
+    }
 
     View* append(lv_obj_t *obj) override
     {

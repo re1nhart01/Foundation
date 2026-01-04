@@ -14,11 +14,23 @@ namespace foundation
     using Component::props;
 
     explicit Modal(const ModalProps& props)
-        : Component(nullptr, nullptr, props) {}
+        : Component(nullptr, nullptr, props)
+    {
+      this->apply_reactive<Modal>(this, props.reactive_delegates);
+        if (this->props.ref != nullptr) {
+            this->props.ref->set(this);
+        }
+    }
 
     ~Modal() override {
-      ESP_LOGE("MODAL", "Modal destroyed");
       close();
+      if (this->props.ref != nullptr) {
+          this->props.ref->unlink();
+      }
+      if (!this->props.reactive_link.empty())
+      {
+        this->detach_reactives<Modal>(this, this->props.reactive_link);
+      }
     }
 
     lv_obj_t* render() override
@@ -78,7 +90,19 @@ namespace foundation
       }
     }
 
-    std::shared_ptr<Styling> styling() override { return {}; }
+    const Styling* styling() const override
+    {
+      style.reset();
+
+      apply_base_style(style);
+
+      if (props.style_override) {
+          props.style_override(style);
+      }
+
+      return &style;
+    }
+
     VNode* append(lv_obj_t*) override { return this; }
   };
 
