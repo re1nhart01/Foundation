@@ -5,12 +5,9 @@ namespace foundation
 {
   class Text final : public Component<TextProps> {
   public:
-    explicit Text(const TextProps& props) : Component(props) {
-      this->apply_reactive<Text>(this, props.reactive_delegates);
+    explicit Text(TextProps&& props) : Component(std::move(props)) {
+      this->apply_reactive<Text>(this, this->props.reactive_delegates);
 
-      for (auto& binder : props.reactive_delegates) {
-          if (binder) binder(this);
-      }
       if (this->props.ref != nullptr) {
           this->props.ref->set(this);
       }
@@ -37,7 +34,9 @@ namespace foundation
       set_component(lv_label_create(parent_obj));
       auto* obj = get_component();
 
-      lv_label_set_text(obj, props.text.c_str());
+      if (lv_obj_is_valid(obj)) {
+        lv_label_set_text(obj, props.text.c_str());
+      }
 
       const auto& e = props;
       if (e.on_click)       lv_obj_add_event_cb(obj, e.on_click, LV_EVENT_CLICKED, nullptr);
@@ -57,14 +56,16 @@ namespace foundation
 
       this->set_active(this->props.is_visible);
 
+      if (auto style = styling(); style->get_is_dirty()) {
+        lv_obj_invalidate(obj);
+      }
+
       lv_obj_update_layout(obj);
       lv_label_set_text(obj, this->props.text.c_str());
     };
 
     const Styling* styling() const override
     {
-      style.reset();
-
       apply_base_style(style);
 
       if (props.style_override) {

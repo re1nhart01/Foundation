@@ -24,7 +24,7 @@ namespace foundation
         Delegate<void(void*, const T&), 40> updater;
       };
 
-      std::unique_ptr<TypedValue<T>> value_store;
+      T value_store;
       std::vector<Binding> bindings;
       SemaphoreHandle_t _mutex;
 
@@ -39,10 +39,12 @@ namespace foundation
       };
 
     public:
-      ThreadReactive() : value_store(nullptr) {
-          _mutex = xSemaphoreCreateMutex();
-          if (_mutex == NULL) {
-              ESP_LOGE("REACTIVE", "Failed to create mutex!");
+      ThreadReactive(const T& default_val) : value_store(default_val)
+      {
+        _mutex = xSemaphoreCreateMutex();
+        if(_mutex == nullptr)
+          {
+            ESP_LOGE("REACTIVE", "Failed to create mutex!");
           }
       }
 
@@ -88,27 +90,39 @@ namespace foundation
         }
       }
 
-      void set(const T& newValue)
-      {
+      void set(Delegate<T(const T&)> fn) {
+        if (!_mutex || !fn) return;
+
+        T current;
+        {
+          Lock lock(_mutex);
+          current = value_store;
+          T next = fn(current);
+          set(next);
+        }
+      }
+
+      void set(const T& newValue) {
         if (!_mutex) return;
-        Lock lock(_mutex);
 
-        if (value_store && value_store->data == newValue) return;
+        std::vector<Binding> snapshot;
 
-        value_store = std::make_unique<TypedValue<T>>(newValue);
-
-        for (auto &b : bindings) {
-          if (b.component != nullptr && b.updater)
-          {
-            b.updater(b.component, value_store->data);
+        {
+          Lock lock(_mutex);
+          value_store = newValue;
+          snapshot = bindings;
+          for (auto& b : snapshot) {
+            if (b.component && b.updater) {
+              b.updater(b.component, newValue);
+            }
           }
         }
       }
 
-      T get() const {
+      T get() {
         if (!_mutex) return T();
         Lock lock(_mutex);
-        return value_store ? value_store->data : T();
+        return value_store;
       }
     };
 }

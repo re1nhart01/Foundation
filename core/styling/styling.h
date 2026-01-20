@@ -8,13 +8,21 @@
 class Styling
 {
 private:
-  mutable lv_style_t style{};
+  std::shared_ptr<lv_style_t> style;
   short width = -1;
   short height = -1;
+  bool dirty = false;
 
 public:
-  Styling();
-  ~Styling();
+  Styling() : style(std::make_shared<lv_style_t>()) {
+    lv_style_init(style.get());
+  }
+
+  ~Styling() {
+    if (style && style.use_count() == 1) {
+      lv_style_reset(style.get());
+    }
+  }
 
   lv_style_t *getStyle() const;
 
@@ -53,17 +61,13 @@ public:
   Styling *setMaxHeight(const short height);
   Styling *setMaxWidth(const short height);
   Styling *setDirection(const short direction);
-  Styling *setGap(int row, int column);
+  Styling *setGap(short row, short column);
   Styling* setLayoutFlex();
   Styling* setFlexFlow(lv_flex_flow_t flow);
   Styling* setAlign(lv_flex_align_t align);
   Styling* setFlexGrow(uint8_t grow);
   Styling* setBackgroundOpa(lv_opa_t opa);
-  void reset() const;
+  void reset();
+  bool get_is_dirty() const;
+  void set_is_dirty(bool v);
 };
-
-inline Styling make_style(std::function<void(Styling&)> fn) {
-  auto s = Styling{};
-  fn(s);
-  return s;
-}
