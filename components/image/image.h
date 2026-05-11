@@ -43,15 +43,31 @@ namespace foundation
       {
         lv_img_set_src(comp, &this->props.img_dsc);
       }
+
+      if (props.ref_control && comp != nullptr) {
+        props.ref_control(comp);
+      }
+
       lv_obj_set_width(comp, this->props.real_width);
       lv_obj_set_height(comp, this->props.real_height);
       lv_obj_align(comp, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_set_style_bg_img_tiled(comp, false, 0);
 
       if (auto style = styling(); style->get_is_dirty()) {
         lv_obj_invalidate(comp);
       }
 
       return comp;
+    };
+
+    void do_rebuild() override {
+      lv_obj_t* obj = this->get_component();
+      if (!obj) return;
+
+      if (props.style_override) {
+        props.style_override(style);
+        lv_obj_refresh_style(obj, LV_PART_MAIN, LV_STYLE_PROP_ANY);
+      }
     };
 
     const Styling* styling() const override

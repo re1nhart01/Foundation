@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "components/props.h";
+#include "components/props.h"
 
 namespace foundation
 {
@@ -18,6 +18,16 @@ namespace foundation
     lv_event_cb_t on_defocused = nullptr;
 
     TextProps&& value(const std::string& v) {
+      text = v;
+      return std::move(*this);
+    }
+
+    TextProps&& value(std::string&& v) {
+      text = std::move(v);
+      return std::move(*this);
+    }
+
+    TextProps&& value(const char* v) {
       text = v;
       return std::move(*this);
     }

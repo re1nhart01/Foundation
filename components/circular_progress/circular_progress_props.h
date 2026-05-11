@@ -1,5 +1,5 @@
 #pragma once
-#include "components/props.h";
+#include "components/props.h"
 
 namespace foundation
 {
@@ -7,9 +7,12 @@ namespace foundation
   struct CircularProgressProps final : BaseProps<CircularProgressProps, CircularProgress> {
     std::string label_symbol = "%";
     bool show_label_default = false;
+    Delegate<void(Styling&)> text_style_override{};
+    Delegate<void(Styling&)> arc_style_override{};
     short min_dy = 0;
     short max_dy = 100;
-    short default_dy = 0;
+    double current_value = 0;
+    short precision = 0;
 
     short width = 10;
     short height = 10;
@@ -29,23 +32,20 @@ namespace foundation
       return std::move(*this);
     }
 
+
+
     CircularProgressProps&& max(short v) {
       max_dy = v;
       return std::move(*this);
     }
 
-    CircularProgressProps&& value(const short v) {
-      default_dy = v;
+    CircularProgressProps&& value(const double v) {
+      current_value = v;
       return std::move(*this);
     }
 
-    CircularProgressProps&& value(const float v) {
-      default_dy = v;
-      return std::move(*this);
-    }
-
-    CircularProgressProps&& value(const int v) {
-      default_dy = v;
+    CircularProgressProps&& decimals(int p) {
+      precision = p;
       return std::move(*this);
     }
 
@@ -56,6 +56,15 @@ namespace foundation
 
     CircularProgressProps&& h(short v) {
       height = v;
+      return std::move(*this);
+    }
+
+    CircularProgressProps&& set_text_style(Delegate<void(Styling&)> fn) {
+      text_style_override = std::move(fn);
+      return std::move(*this);
+    }
+    CircularProgressProps&& set_arc_style(Delegate<void(Styling&)> fn) {
+      arc_style_override = std::move(fn);
       return std::move(*this);
     }
   };

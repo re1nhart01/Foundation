@@ -2,16 +2,21 @@
 
 #include "core/ref/ref.h"
 #include "core/styling/styling.h"
+#include "registry.h"
 
-#include <memory>
+#include <core/state/reactive.h>
 #include <esp_log.h>
+#include <memory>
+#include <atomic>
 
 namespace foundation {
   class VNode {
   protected:
+    inline static std::atomic<uintptr_t> next_id{1};
     lv_obj_t* component = nullptr;
     lv_obj_t* parent = nullptr;
-
+    std::atomic<bool> is_alive{true};
+    uintptr_t id;
     mutable Styling style{};
     std::unique_ptr<VNode> renderer_view = nullptr;
 
@@ -19,10 +24,20 @@ namespace foundation {
     virtual ~VNode()
     {
       VNode::component_will_unmount();
+      is_alive = false;
+      ComponentRegistry::instance().unregister_component(id);
     }
 
-    VNode() {}
-    VNode(lv_obj_t* obj, lv_obj_t* parent) : component(obj), parent(parent) {}
+    VNode() : id(next_id.fetch_add(1, std::memory_order_relaxed)) {
+      ComponentRegistry::instance().register_component(id, this);
+    }
+
+    VNode(lv_obj_t* obj, lv_obj_t* parent)
+      : component(obj),
+        parent(parent),
+        id(next_id.fetch_add(1, std::memory_order_relaxed)) {
+      ComponentRegistry::instance().register_component(id, this);
+    }
 
     virtual void component_did_mount()    {  }
     virtual void component_will_unmount() {  }
@@ -38,6 +53,8 @@ namespace foundation {
 
     lv_obj_t* get_component() const { return component; }
     lv_obj_t* get_parent() const { return parent; }
+    uintptr_t get_component_id() const { return id; }
+    bool alive() const { return is_alive.load(std::memory_order_acquire); }
 
     void set_parent(lv_obj_t* p) { parent = p; }
 
@@ -55,7 +72,6 @@ namespace foundation {
     template<typename T>
     void detach_reactives(T* instance, std::vector<IReactive*>& states)
     {
-      ESP_LOGI("VNode", "apply_reactive called. Count: %d", states.size());
       for (auto* state : states) {
           if (state) state->detach(instance);
       }
@@ -64,7 +80,6 @@ namespace foundation {
 
     template<typename T>
     void apply_reactive(T* instance, const std::vector<Delegate<void(void*)>>& delegates) {
-      ESP_LOGI("VNode", "apply_reactive called. Count: %d", delegates.size());
       for (auto& binder : delegates) {
           if (binder) binder(static_cast<void*>(instance));
       }

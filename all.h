@@ -55,6 +55,12 @@
 #include "components/meter/meter.h"
 #include "components/meter/meter_props.h"
 
+#include "components/matrix/matrix.h"
+#include "components/matrix/matrix_props.h"
+
+#include "components/pagination/pagination.h"
+#include "components/pagination/pagination_props.h"
+
 #include "core/keyboard_manager/keyboard_manager.h"
 
 #include "core/navigation/stack_navigator/stack_navigator.h"
@@ -62,6 +68,7 @@
 
 
 #include "core/styling/styling.h"
+#include "core/animated/animated_control.h"
 
 #include "core/state/reactive.h"
 #include "core/structures/debounce.h"
@@ -69,4 +76,8 @@
 #include "core/style_store/style_store.h"
 #include "components/props.h"
 #include "core/structures/delegate.h"
-
+#include "core/structures/ui_queue.h"
+#include "core/structures/ui_queue_c.h"
+#include "components/registry.h"
+#include "core/state/flash_reactive.hh"
+#include "core/state/flash_reader.hh"

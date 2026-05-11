@@ -1,7 +1,6 @@
-//
-// Created by evgeniy on 11/13/25.
-//
+
 #pragma once
+
 #include "button_props.h"
 #include "components/component.h"
 
@@ -43,8 +42,21 @@ namespace foundation
       set_component(lv_btn_create(parent_obj));
       lv_obj_t* obj = this->get_component();
 
-      if (const Styling* s = styling()) {
-        lv_obj_add_style(obj, s->getStyle(), LV_PART_MAIN);
+
+      const auto style = this->styling();
+
+      if (style->clear_default) {
+        lv_obj_remove_style_all(obj);
+      }
+
+      lv_obj_add_style(obj, style->getStyle(), LV_PART_MAIN);
+
+      if (style->width > 0) {
+        lv_obj_set_width(obj, style->width);
+      }
+
+      if (style->height > 0) {
+        lv_obj_set_height(obj, style->height);
       }
 
       if (this->props.child != nullptr) {
@@ -85,12 +97,27 @@ namespace foundation
       
       this->set_active(this->props.is_visible);
       if (label != nullptr && lv_obj_is_valid(label))
-        {
-          lv_label_set_text(label, props.text.c_str());
+      {
+        lv_label_set_text(label, props.text.c_str());
+      }
+
+
+      if (const auto style = this->styling(); style != nullptr) {
+        if (style->width > 0) {
+          lv_obj_set_width(obj, style->width);
         }
+        if (style->height > 0) {
+          lv_obj_set_height(obj, style->height);
+        }
+      }
 
       if (auto style = styling(); style->get_is_dirty()) {
         lv_obj_invalidate(obj);
+      }
+
+      if (props.style_override) {
+        props.style_override(style);
+        lv_obj_refresh_style(obj, LV_PART_MAIN, LV_STYLE_PROP_ANY);
       }
 
       if (props.child != nullptr) {

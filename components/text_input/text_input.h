@@ -35,6 +35,11 @@ namespace foundation
       set_component(lv_textarea_create(parent));
       lv_obj_t* obj = this->get_component();
 
+      if (props.style_override) {
+        props.style_override(style);
+        lv_obj_add_style(obj, style.getStyle(), LV_PART_MAIN);
+      }
+
       do_rebuild();
 
       return obj;
@@ -48,6 +53,11 @@ namespace foundation
       this->set_active(this->props.is_visible);
       lv_obj_update_layout(obj);
 
+      if (this->props.disabled) {
+        lv_obj_add_state(obj, LV_STATE_DISABLED);
+        lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE);
+      }
+
       lv_textarea_set_one_line(obj, props.is_one_line);
       lv_textarea_set_placeholder_text(obj, props.placeholder);
       lv_textarea_set_password_mode(obj, props.is_secure);
@@ -60,6 +70,11 @@ namespace foundation
 
       if (auto style = styling(); style->get_is_dirty()) {
         lv_obj_invalidate(obj);
+      }
+
+      if (props.style_override) {
+        props.style_override(style);
+        lv_obj_refresh_style(obj, LV_PART_MAIN, LV_STYLE_PROP_ANY);
       }
 
       lv_obj_remove_event_cb(obj, nullptr);

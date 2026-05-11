@@ -19,6 +19,12 @@ Styling* Styling::setBackgroundColor(lv_color_t color) {
   return this;
 }
 
+Styling* Styling::setBackgroundImage(const char* asset) {
+  lv_style_set_bg_img_src(style.get(), asset);
+  this->dirty = true;
+  return this;
+}
+
 Styling* Styling::setBackgroundGradient(lv_color_t start, lv_color_t end,
                                         lv_grad_dir_t dir) {
   this->dirty = true;
@@ -33,6 +39,12 @@ Styling* Styling::setBackgroundOpacity(lv_opa_t opa) {
   return this;
 }
 
+Styling* Styling::setOpacity(lv_opa_t opa) {
+  this->dirty = true;
+  lv_style_set_opa(style.get(), opa);
+  return this;
+}
+
 Styling* Styling::setBorderRadius(lv_coord_t radius) {
   this->dirty = true;
   lv_style_set_radius(style.get(), radius);
@@ -44,6 +56,19 @@ Styling* Styling::setBorder(lv_color_t color, lv_coord_t width, lv_opa_t opa) {
   lv_style_set_border_color(style.get(), color);
   lv_style_set_border_width(style.get(), width);
   lv_style_set_border_opa(style.get(), opa);
+  return this;
+}
+
+Styling* Styling::setArcColor(lv_color_t color) {
+  lv_style_set_arc_color(style.get(), color);
+  return this;
+};
+
+Styling* Styling::setBorder() {
+  this->dirty = true;
+  lv_style_set_border_color(style.get(), lv_color_hex(0xffffff));
+  lv_style_set_border_width(style.get(), 0);
+  lv_style_set_border_opa(style.get(), LV_OPA_0);
   return this;
 }
 
@@ -63,6 +88,15 @@ Styling* Styling::setPadding(lv_coord_t top, lv_coord_t bottom, lv_coord_t left,
   lv_style_set_pad_bottom(style.get(), bottom);
   lv_style_set_pad_left(style.get(), left);
   lv_style_set_pad_right(style.get(), right);
+  return this;
+}
+
+Styling* Styling::setPadding(lv_coord_t all) {
+  this->dirty = true;
+  lv_style_set_pad_top(style.get(), all);
+  lv_style_set_pad_bottom(style.get(), all);
+  lv_style_set_pad_left(style.get(), all);
+  lv_style_set_pad_right(style.get(), all);
   return this;
 }
 
@@ -182,12 +216,19 @@ Styling* Styling::setTransition(const lv_style_transition_dsc_t* transition) {
 Styling* Styling::setWidth(const short width) {
   this->dirty = true;
   this->width = width;
+  lv_style_set_width(style.get(), width);
+  return this;
+}
+
+Styling* Styling::setCheckedBg(const lv_color_t color) {
+  this->checked_bg = color;
   return this;
 }
 
 Styling* Styling::setHeight(const short height) {
   this->dirty = true;
   this->height = height;
+  lv_style_set_height(style.get(), height);
   return this;
 }
 
@@ -195,6 +236,11 @@ Styling* Styling::setSizeW(const short width, const short height) {
   this->dirty = true;
   this->width = width;
   this->height = height;
+  return this;
+}
+
+Styling* Styling::set_clear_default() {
+  this->clear_default = true;
   return this;
 }
 

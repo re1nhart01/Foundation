@@ -9,11 +9,13 @@ class Styling
 {
 private:
   std::shared_ptr<lv_style_t> style;
+public:
   short width = -1;
   short height = -1;
   bool dirty = false;
+  bool clear_default = false;
+  lv_color_t checked_bg = lv_color_hex(0xffffffff);
 
-public:
   Styling() : style(std::make_shared<lv_style_t>()) {
     lv_style_init(style.get());
   }
@@ -29,19 +31,24 @@ public:
   static Styling create() { return Styling{}; };
 
   Styling *setBackgroundColor(lv_color_t color);
+  Styling* setBackgroundImage(const char* asset);
   Styling *setBackgroundGradient(lv_color_t start, lv_color_t end, lv_grad_dir_t dir);
   Styling *setBackgroundOpacity(lv_opa_t opa);
+  Styling *setOpacity(lv_opa_t opa);
   Styling *setBorderRadius(lv_coord_t radius);
   Styling *setBorder(lv_color_t color, lv_coord_t width, lv_opa_t opa);
+  Styling* setBorder();
   Styling *setShadow(lv_color_t color, lv_coord_t width, lv_coord_t spread);
   Styling *setPadding(lv_coord_t top, lv_coord_t bottom, lv_coord_t left,
                       lv_coord_t right);
+  Styling* setPadding(lv_coord_t all);
   Styling *setSize(lv_coord_t width, lv_coord_t height);
   Styling *setMinMaxSize(lv_coord_t min_w, lv_coord_t min_h, lv_coord_t max_w,
                          lv_coord_t max_h);
   Styling *setTextColor(lv_color_t color);
   Styling *setFont(const lv_font_t *font);
   Styling *setTextAlign(lv_text_align_t align);
+  Styling *setArcColor(lv_color_t color);
   Styling *setTextOpacity(lv_opa_t opa);
   Styling *setLineColor(lv_color_t color);
   Styling *setLineWidth(lv_coord_t width);
@@ -56,6 +63,7 @@ public:
   Styling *setAlign(lv_align_t align);
   Styling *setTransition(const lv_style_transition_dsc_t *transition);
   Styling *setWidth(const short width);
+  Styling* setCheckedBg(lv_color_t color);
   Styling *setHeight(const short height);
   Styling *setSizeW(const short width, const short height);
   Styling *setMaxHeight(const short height);
@@ -63,6 +71,7 @@ public:
   Styling *setDirection(const short direction);
   Styling *setGap(short row, short column);
   Styling* setLayoutFlex();
+  Styling* set_clear_default();
   Styling* setFlexFlow(lv_flex_flow_t flow);
   Styling* setAlign(lv_flex_align_t align);
   Styling* setFlexGrow(uint8_t grow);

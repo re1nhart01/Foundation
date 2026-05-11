@@ -23,6 +23,8 @@ using $$FlatList = std::unique_ptr<foundation::FlatList>;
 using $$Bar = std::unique_ptr<foundation::Bar>;
 using $$Meter = std::unique_ptr<foundation::Meter>;
 using $$Dropdown = std::unique_ptr<foundation::Dropdown>;
+using $$Matrix = std::unique_ptr<foundation::Matrix>;
+using $$Pagination = std::unique_ptr<foundation::Pagination>;
 
 inline std::unique_ptr<foundation::View> $View(foundation::ViewProps&& args) {
   return std::make_unique<foundation::View>(
@@ -94,6 +96,12 @@ inline std::unique_ptr<foundation::Stepper> $Stepper(
       std::forward<foundation::StepperProps>(args));
 }
 
+inline std::unique_ptr<foundation::Matrix> $Matrix(
+    foundation::MatrixProps&& args) {
+  return std::make_unique<foundation::Matrix>(
+      std::forward<foundation::MatrixProps>(args));
+}
+
 inline std::unique_ptr<foundation::Fragment> $Fragment(
     foundation::FragmentProps&& args) {
   return std::make_unique<foundation::Fragment>(
@@ -127,6 +135,13 @@ inline std::unique_ptr<foundation::Dropdown> $Dropdown(
     foundation::DropdownProps&& args) {
   return std::make_unique<foundation::Dropdown>(
       std::forward<foundation::DropdownProps>(args));
+}
+
+
+inline std::unique_ptr<foundation::Pagination> $Pagination(
+    foundation::PaginationProps&& args) {
+  return std::make_unique<foundation::Pagination>(
+      std::forward<foundation::PaginationProps>(args));
 }
 
 using Children = std::vector<std::unique_ptr<foundation::VNode>>;
